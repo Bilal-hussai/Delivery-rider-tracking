@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>RideTrack — Rider App</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#080d14;color:#e2e8f0;font-family:'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px 16px}
+
+.card{background:#0d1117;border:1px solid #1e2d3d;border-radius:18px;padding:24px 20px;width:100%;max-width:380px;margin-top:10px;animation:fadeUp .4s ease}
+
+.top{text-align:center;margin-bottom:22px}
+.app-icon{font-size:52px;margin-bottom:6px}
+.app-name{font-size:18px;font-weight:800;color:#f97316;letter-spacing:2px}
+.app-sub{font-size:11px;color:#4a6080;font-family:monospace;margin-top:2px}
+
+.rider-box{background:#080d14;border:1px solid #1e2d3d;border-radius:10px;padding:12px 16px;margin-bottom:18px;text-align:center}
+.rider-lbl{font-size:10px;color:#4a6080;margin-bottom:3px;letter-spacing:1px;font-family:monospace}
+.rider-nm{font-size:20px;font-weight:700;color:#f97316}
+
+.circle-wrap{display:flex;justify-content:center;margin-bottom:18px}
+.circle{width:110px;height:110px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .4s;position:relative}
+.circle .ci{font-size:34px;line-height:1}
+.circle .cl{font-size:9px;font-weight:800;font-family:monospace;margin-top:3px;letter-spacing:1px}
+.circle.idle{background:rgba(96,165,250,.08);border:2.5px solid rgba(96,165,250,.35);color:#60a5fa}
+.circle.tracking{background:rgba(249,115,22,.1);border:2.5px solid #f97316;color:#f97316}
+.circle.tracking::before{content:'';position:absolute;width:110px;height:110px;border-radius:50%;border:2px solid #f97316;animation:ping 1.5s ease-out infinite}
+.circle.tracking::after{content:'';position:absolute;width:110px;height:110px;border-radius:50%;border:2px solid #f97316;animation:ping 1.5s ease-out .6s infinite}
+.circle.err{background:rgba(239,68,68,.1);border:2.5px solid rgba(239,68,68,.4);color:#ef4444}
+.circle.perm{background:rgba(251,191,36,.1);border:2.5px solid rgba(251,191,36,.4);color:#fbbf24}
+
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px}
+.st{background:#080d14;border:1px solid #1e2d3d;border-radius:9px;padding:10px 6px;text-align:center}
+.stv{font-size:15px;font-weight:800;font-family:monospace;color:#f97316}
+.stl{font-size:9px;color:#4a6080;margin-top:2px}
+
+.btn-go{background:linear-gradient(135deg,#f97316,#c2410c);border:none;border-radius:11px;padding:14px;color:#fff;font-size:15px;font-weight:800;cursor:pointer;width:100%;letter-spacing:.5px;margin-bottom:10px}
+.btn-stop{background:rgba(239,68,68,.12);border:1.5px solid rgba(239,68,68,.4);border-radius:11px;padding:14px;color:#ef4444;font-size:15px;font-weight:800;cursor:pointer;width:100%;display:none}
+
+.warn{background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.25);border-radius:9px;padding:11px 14px;margin-bottom:14px;font-size:11px;color:#fbbf24;line-height:1.65;display:none}
+
+.log{background:#060b11;border:1px solid #1a2535;border-radius:9px;padding:10px 12px;max-height:130px;overflow-y:auto;margin-top:14px}
+.le{font-size:10px;font-family:monospace;padding:3px 0;border-bottom:1px solid #111820;color:#4a6080}
+.le.ok{color:#4ade80}.le.er{color:#f87171}.le.info{color:#60a5fa}
+
+.errbox{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:14px;text-align:center;margin-bottom:16px}
+
+.loading-fb{text-align:center;padding:20px;color:#4a6080;font-size:12px;font-family:monospace}
+
+@keyframes ping{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.7);opacity:0}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="top">
+    <div class="app-icon">🛵</div>
+    <div class="app-name">RIDETRACK</div>
+    <div class="app-sub">Rider GPS App</div>
+  </div>
+
+  <!-- Loading state -->
+  <div class="loading-fb" id="loadingBox">
+    <div style="width:24px;height:24px;border:2px solid #1e2d3d;border-top-color:#f97316;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 8px"></div>
+    App load ho rahi hai...
+  </div>
+
+  <!-- Error state (invalid link) -->
+  <div id="errBox" class="errbox" style="display:none">
+    <div style="font-size:20px;margin-bottom:6px">❌</div>
+    <div style="font-size:13px;color:#f87171;font-weight:600">Invalid Link</div>
+    <div style="font-size:11px;color:#4a6080;margin-top:4px">Admin se naya link mangwayein</div>
+  </div>
+
+  <!-- Main content -->
+  <div id="mainContent" style="display:none">
+    <div class="rider-box">
+      <div class="rider-lbl">RIDER NAME</div>
+      <div class="rider-nm" id="rNm">—</div>
+    </div>
+
+    <div class="circle-wrap">
+      <div class="circle idle" id="circ">
+        <div class="ci">📍</div>
+        <div class="cl">READY</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="st"><div class="stv" id="stCnt">0</div><div class="stl">Updates</div></div>
+      <div class="st"><div class="stv" id="stAcc">—</div><div class="stl">Accuracy</div></div>
+      <div class="st"><div class="stv" id="stTime">—</div><div class="stl">Last Send</div></div>
+    </div>
+
+    <div class="warn" id="warnBox">
+      ⚠️ <strong>Zaroori:</strong> Yeh page band mat karein. Chrome minimize kar sakte hain lekin page open rakhen.
+    </div>
+
+    <button class="btn-go" id="btnGo" onclick="startTracking()">▶ &nbsp; Tracking Shuru Karein</button>
+    <button class="btn-stop" id="btnStop" onclick="stopTracking()">⏹ &nbsp; Tracking Band Karein</button>
+
+    <div class="log" id="logBox">
+      <div class="le info">[Ready] Tracking shuru karne ke liye button dabayein.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ Firebase scripts BODY ke end mein — "firebase is not defined" error fix -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+// Firebase initialize
+try {
+  firebase.initializeApp({
+    apiKey:"AIzaSyDT1SDRAnYvkX4I6I0RuLdRF88PgSG_zQ0",
+    authDomain:"ridetracker-7db8e.firebaseapp.com",
+    databaseURL:"https://ridetracker-7db8e-default-rtdb.firebaseio.com",
+    projectId:"ridetracker-7db8e",
+    storageBucket:"ridetracker-7db8e.firebasestorage.app",
+    messagingSenderId:"826095947387",
+    appId:"1:826095947387:web:bd0faf1db1400712bc5cde"
+  });
+} catch(e) {
+  console.log("Firebase already initialized");
+}
+
+const db = firebase.database();
+
+// Parse URL params
+const params = new URLSearchParams(window.location.search);
+const riderId = params.get('id');
+const riderName = decodeURIComponent(params.get('name') || 'Rider');
+
+// Hide loader, show correct section
+document.getElementById('loadingBox').style.display = 'none';
+
+if (!riderId) {
+  document.getElementById('errBox').style.display = 'block';
+} else {
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('rNm').textContent = riderName;
+}
+
+let watchId = null, cnt = 0;
+
+function setCircle(type, icon, label) {
+  const el = document.getElementById('circ');
+  el.className = 'circle ' + type;
+  el.innerHTML = '<div class="ci">'+icon+'</div><div class="cl">'+label+'</div>';
+}
+
+function addLog(msg, type) {
+  const box = document.getElementById('logBox');
+  const t = new Date().toLocaleTimeString('en-PK',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const d = document.createElement('div');
+  d.className = 'le ' + (type||'ok');
+  d.textContent = '['+t+'] ' + msg;
+  box.insertBefore(d, box.firstChild);
+  while(box.children.length > 25) box.removeChild(box.lastChild);
+}
+
+function startTracking() {
+  if (!riderId) return;
+
+  if (!navigator.geolocation) {
+    setCircle('err','❌','NO GPS');
+    addLog('Is browser mein GPS support nahi.', 'er');
+    return;
+  }
+
+  setCircle('perm','🔐','PERMISSION');
+  addLog('GPS permission maang raha hai...', 'info');
+
+  document.getElementById('btnGo').style.display = 'none';
+  document.getElementById('btnStop').style.display = 'block';
+  document.getElementById('warnBox').style.display = 'block';
+
+  watchId = navigator.geolocation.watchPosition(
+    function(pos) {
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+      var acc = Math.round(pos.coords.accuracy);
+
+      db.ref('riders/' + riderId).update({
+        lat: lat,
+        lng: lng,
+        accuracy: acc,
+        lastUpdate: firebase.database.ServerValue.TIMESTAMP,
+        name: riderName
+      }).then(function() {
+        cnt++;
+        document.getElementById('stCnt').textContent = cnt;
+        document.getElementById('stAcc').textContent = acc + 'm';
+        document.getElementById('stTime').textContent = new Date().toLocaleTimeString('en-PK',{hour:'2-digit',minute:'2-digit'});
+        setCircle('tracking','🛵','TRACKING');
+        addLog('Bheja: ' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ' (±'+acc+'m)', 'ok');
+      }).catch(function(e) {
+        addLog('Firebase error: ' + e.message, 'er');
+      });
+    },
+    function(err) {
+      setCircle('err','❌','GPS ERROR');
+      var msgs = {
+        1: 'GPS permission deny! Chrome → Settings → Site Settings → Location → Allow.',
+        2: 'GPS signal nahi. Bahar jayein ya khirki ke paas.',
+        3: 'GPS timeout. Dobara try karein.'
+      };
+      addLog(msgs[err.code] || 'GPS error: ' + err.message, 'er');
+    },
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+  );
+}
+
+function stopTracking() {
+  if (watchId !== null) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+  setCircle('idle','📍','STOPPED');
+  document.getElementById('btnGo').style.display = 'block';
+  document.getElementById('btnStop').style.display = 'none';
+  document.getElementById('warnBox').style.display = 'none';
+  addLog('Tracking band kar di.', 'info');
+}
+</script>
+</body>
+</html>
